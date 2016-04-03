@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/statics/vjoistic.js"></script>
+    <script>
+  var socket = io();
+</script>
+</head>
+
+<body>
+<div id="container" style="width: 100%;height: 100%"></div>
+<div id="result"></div>
+<canvas id="battery" style="width: 50px;height: 25px;position: absolute;right:0;"></canvas>
+<script>
+
+    var canvas = document.getElementById('battery');
+
+var context = canvas.getContext('2d');
+
+function drawBorders() {
+context.beginPath();
+context.rect(5, 5, 180, 90);
+context.lineWidth = 10;
+context.strokeStyle = 'black';
+context.stroke();
+
+context.beginPath();
+context.rect(190, 40, 10, 20);
+context.fillStyle = 'black';
+context.fill();
+context.stroke();
+
+}
+
+function drawPercentage(percentage) {
+	clearPercentage();
+	context.beginPath();
+	context.rect(10, 10, 170 * (percentage/100), 80);
+	context.fillStyle = 'rgb('+ Math.floor((1-(percentage/100))*255) + ',' + Math.floor((percentage/100)*255) + ',0)';
+
+	context.fill();
+}
+
+function clearPercentage() {
+	context.clearRect(10, 10, 170, 80);
+}
+
+    drawPercentage(27);
+drawBorders();
+
+var currentPerc = 1;
+var change = 1;
+			console.log("touchscreen is", VirtualJoystick.touchScreenAvailable() ? "available" : "not available");
+
+			var joystick	= new VirtualJoystick({
+				mouseSupport	: true,
+		stationaryBase	: true,
+		baseX		: 100,
+		baseY		: 200,
+                limitStickTravel: true,
+		      stickRadius: 50
+
+			});
+
+
+			joystick.addEventListener('touchStart', function(){
+				console.log('down')
+			})
+			joystick.addEventListener('touchEnd', function(){
+				console.log('up')
+			})
+            var changes = 0;
+			setInterval(function(){
+				var outputEl	= document.getElementById('result');
+                var x = joystick.deltaX();
+                var y = joystick.deltaY();
+                if (x < 0) x = x * -1.0;
+                if (y < 0) y = y * -1.0;
+                //x = (50/x ) ;
+                y = (y/50.0 ) * 100.0;
+                x = (x/50.0 ) * 100.0;
+                var sendgo = false;
+                var newchange = (joystick.left()	? "1"	: "0") + (joystick.right()	? "1"	: "0") + (joystick.up()	? "1"	: "0")+ (joystick.down()	? "1"	: "0")+joystick.deltaX()+joystick.deltaY();
+                if((joystick.left()	? true	: false) || (joystick.right()	? true	: false) ||(joystick.up()	? true	: false)||(joystick.down()	? true	: false)) {
+                    if (changes != newchange) {
+                        socket.emit("joy",{
+                            "left":(joystick.left()	? true	: false),
+                            "right":(joystick.right()	? true	: false),
+                            "up":(joystick.up()	? true	: false),
+                            "down":(joystick.down()	? true	: false),
+                            "x_speed":x,
+                            "y_speed":y,
+                            }
+                        )
+                        changes = newchange;
+                    }
+                } else {
+                     if (changes != newchange) {
+                         socket.emit("joy", {
+                                     "left": (joystick.left() ? true : false),
+                                     "right": (joystick.right() ? true : false),
+                                     "up": (joystick.up() ? true : false),
+                                     "down": (joystick.down() ? true : false),
+                                     "x_speed": x,
+                                     "y_speed": y,
+                                 }
+                         )
+                         changes = newchange;
+                     }
+                    }
+
+
+				outputEl.innerHTML	= '<b>Result:</b> '
+					+ ' dx:'+joystick.deltaX()
+					+ ' dy:'+joystick.deltaY()
+					+ (joystick.right()	? ' right'	: '')
+					+ (joystick.up()	? ' up'		: '')
+					+ (joystick.left()	? ' left'	: '')
+					+ (joystick.down()	? ' down' 	: '')
+			}, 1/30 * 1000);
+		</script>
+</body>
+</html>
